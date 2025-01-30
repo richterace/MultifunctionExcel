@@ -5,13 +5,11 @@ import pandas as pd
 class ExcelProcessorApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Excel Processor App")
-        self.root.geometry("600x400")
+        self.root.title("Excel Processor App with Pivot Table")
         
         self.filename = None
         self.df = None
         
-        # UI Elements
         self.upload_btn = tk.Button(root, text="Upload Excel File", command=self.load_file)
         self.upload_btn.pack(pady=10)
         
@@ -20,6 +18,12 @@ class ExcelProcessorApp:
         
         self.save_btn = tk.Button(root, text="Save Processed File", command=self.save_file, state=tk.DISABLED)
         self.save_btn.pack(pady=10)
+        
+        self.pivot_btn = tk.Button(root, text="Generate Pivot Table", command=self.generate_pivot, state=tk.DISABLED)
+        self.pivot_btn.pack(pady=10)
+        
+        self.stats_btn = tk.Button(root, text="Calculate Stats", command=self.calculate_stats, state=tk.DISABLED)
+        self.stats_btn.pack(pady=10)
         
         self.status_label = tk.Label(root, text="No file loaded", fg="red")
         self.status_label.pack(pady=10)
@@ -33,6 +37,8 @@ class ExcelProcessorApp:
             self.df = pd.read_excel(self.filename)
             self.display_data()
             self.process_btn.config(state=tk.NORMAL)
+            self.pivot_btn.config(state=tk.NORMAL)
+            self.stats_btn.config(state=tk.NORMAL)
             self.status_label.config(text=f"Loaded: {self.filename}", fg="green")
     
     def display_data(self):
@@ -50,12 +56,11 @@ class ExcelProcessorApp:
     
     def process_data(self):
         if self.df is not None:
-            # Processing functions
-            self.df.fillna(self.df.mean(numeric_only=True), inplace=True)  # Fill missing values with mean
-            self.df.drop_duplicates(inplace=True)  # Remove duplicates
+            self.df.fillna(self.df.mean(numeric_only=True), inplace=True)
+            self.df.drop_duplicates(inplace=True)
             
             for col in self.df.select_dtypes(include=["object"]).columns:
-                self.df[col] = self.df[col].str.upper()  # Convert text to uppercase
+                self.df[col] = self.df[col].str.upper()
             
             self.display_data()
             self.save_btn.config(state=tk.NORMAL)
@@ -67,6 +72,30 @@ class ExcelProcessorApp:
             if save_path:
                 self.df.to_excel(save_path, index=False)
                 messagebox.showinfo("Success", "File saved successfully!")
+    
+    def generate_pivot(self):
+        if self.df is not None:
+            try:
+                pivot_table = self.df.pivot_table(index=self.df.columns[0], aggfunc='sum')
+                self.df = pivot_table.reset_index()
+                self.display_data()
+                messagebox.showinfo("Success", "Pivot table generated successfully!")
+                self.save_btn.config(state=tk.NORMAL)
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to generate pivot table: {e}")
+    
+    def calculate_stats(self):
+        if self.df is not None:
+            try:
+                stats = {
+                    'Mean': self.df.mean(numeric_only=True),
+                    'Median': self.df.median(numeric_only=True),
+                    'Mode': self.df.mode().iloc[0]
+                }
+                stats_df = pd.DataFrame(stats)
+                messagebox.showinfo("Statistics", stats_df.to_string())
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to calculate statistics: {e}")
 
 if __name__ == "__main__":
     root = tk.Tk()
